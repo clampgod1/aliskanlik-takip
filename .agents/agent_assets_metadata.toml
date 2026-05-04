@@ -1,8 +1,13 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "snMm_q-1jbicqbM5zYa-B"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "UO8gHe2sGdf7uN1JENgXB"
+uri = "file://artifacts/mobile/README.md"
+type = "text"
+title = "Alışkanlık Takip — Proje Raporu"
