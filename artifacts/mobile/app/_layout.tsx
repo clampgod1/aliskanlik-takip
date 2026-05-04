@@ -13,7 +13,9 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/Toast";
 import { HabitsProvider } from "@/context/HabitsContext";
+import { requestNotificationPermission } from "@/hooks/useNotifications";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,10 +25,7 @@ function RootLayoutNav() {
       <Stack.Screen name="index" />
       <Stack.Screen
         name="add-habit"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
+        options={{ presentation: "modal", headerShown: false }}
       />
     </Stack>
   );
@@ -43,6 +42,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      requestNotificationPermission();
     }
   }, [fontsLoaded, fontError]);
 
@@ -54,7 +54,9 @@ export default function RootLayout() {
         <HabitsProvider>
           <GestureHandlerRootView>
             <KeyboardProvider>
-              <RootLayoutNav />
+              <ToastProvider>
+                <RootLayoutNav />
+              </ToastProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </HabitsProvider>

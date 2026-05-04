@@ -7,22 +7,27 @@ import React, {
   useState,
 } from "react";
 
+import { cancelHabitNotification, scheduleHabitNotification } from "@/hooks/useNotifications";
+
 export interface Habit {
   id: string;
   name: string;
+  emoji: string;
   isDone: boolean;
   doneDate: string | null;
+  reminderTime: string | null;
+  notificationId: string | null;
 }
 
 interface HabitsContextType {
   habits: Habit[];
-  addHabit: (name: string) => Promise<void>;
+  addHabit: (name: string, emoji: string, reminderTime: string | null) => Promise<void>;
   toggleHabit: (id: string) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   isLoading: boolean;
 }
 
-const STORAGE_KEY = "@habits_v1";
+const STORAGE_KEY = "@habits_v2";
 
 function getTodayString(): string {
   const d = new Date();
@@ -69,14 +74,28 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   }
 
   const addHabit = useCallback(
-    async (name: string) => {
+    async (name: string, emoji: string, reminderTime: string | null) => {
       const trimmed = name.trim();
       if (!trimmed) return;
+
+      let notificationId: string | null = null;
+      if (reminderTime) {
+        notificationId = await scheduleHabitNotification(
+          generateId(),
+          trimmed,
+          emoji,
+          reminderTime
+        );
+      }
+
       const newHabit: Habit = {
         id: generateId(),
         name: trimmed,
+        emoji,
         isDone: false,
         doneDate: null,
+        reminderTime,
+        notificationId,
       };
       await saveHabits([...habits, newHabit]);
     },
@@ -102,6 +121,10 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   const deleteHabit = useCallback(
     async (id: string) => {
+      const habit = habits.find((h) => h.id === id);
+      if (habit?.notificationId) {
+        await cancelHabitNotification(habit.notificationId);
+      }
       await saveHabits(habits.filter((h) => h.id !== id));
     },
     [habits]
