@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -15,70 +16,81 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme, type ThemeMode } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
-function ThemeOptionButton({
+function ThemeOption({
   label,
-  icon,
+  emoji,
   value,
   current,
   onPress,
+  colors,
 }: {
   label: string;
-  icon: string;
+  emoji: string;
   value: ThemeMode;
   current: ThemeMode;
   onPress: () => void;
+  colors: ReturnType<typeof useColors>;
 }) {
-  const colors = useColors();
   const isSelected = current === value;
   return (
     <Pressable
       onPress={onPress}
-      style={[
-        optStyles.optBtn,
+      style={({ pressed }) => [
+        optStyles.btn,
         {
           backgroundColor: isSelected ? colors.accent : colors.muted,
           borderColor: isSelected ? colors.primary : colors.border,
+          opacity: pressed ? 0.75 : 1,
         },
       ]}
     >
-      <Feather
-        name={icon as any}
-        size={20}
-        color={isSelected ? colors.primary : colors.mutedForeground}
-      />
-      <Text
-        style={[
-          optStyles.optLabel,
-          { color: isSelected ? colors.primary : colors.foreground },
-        ]}
-      >
+      {isSelected && (
+        <LinearGradient
+          colors={["#6366f1", "#8b5cf6"]}
+          style={optStyles.selectedBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+      )}
+      <Text style={optStyles.emoji}>{emoji}</Text>
+      <Text style={[optStyles.label, { color: isSelected ? colors.primary : colors.foreground }]}>
         {label}
       </Text>
       {isSelected && (
-        <View style={[optStyles.dot, { backgroundColor: colors.primary }]} />
+        <View style={[optStyles.checkBadge, { backgroundColor: colors.primary }]}>
+          <Feather name="check" size={10} color="#fff" />
+        </View>
       )}
     </Pressable>
   );
 }
 
 const optStyles = StyleSheet.create({
-  optBtn: {
+  btn: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
+    paddingVertical: 16,
+    overflow: "hidden",
+    gap: 6,
   },
-  optLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
+  selectedBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderRadius: 2,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  emoji: { fontSize: 24 },
+  label: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  checkBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
@@ -90,69 +102,72 @@ export default function SettingsScreen() {
   const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
+      paddingTop: Platform.OS === "web" ? 50 : insets.top + 10,
+      paddingHorizontal: 20,
+      paddingBottom: 24,
+    },
+    headerTop: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingTop: Platform.OS === "web" ? 60 : insets.top + 16,
-      paddingBottom: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
     closeBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.muted,
+      width: 38,
+      height: 38,
+      borderRadius: 13,
+      backgroundColor: "rgba(255,255,255,0.15)",
       alignItems: "center",
       justifyContent: "center",
     },
     headerTitle: {
-      fontSize: 17,
-      fontFamily: "Inter_600SemiBold",
-      color: colors.foreground,
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+      color: "#ffffff",
+      letterSpacing: -0.3,
     },
     scroll: { flex: 1 },
-    scrollContent: { padding: 24, gap: 28 },
-    sectionLabel: {
-      fontSize: 12,
-      fontFamily: "Inter_600SemiBold",
+    scrollContent: { padding: 20, gap: 16 },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: "#4f46e5",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    cardLabel: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
       color: colors.mutedForeground,
-      letterSpacing: 0.8,
+      letterSpacing: 1.2,
       textTransform: "uppercase",
-      marginBottom: 12,
+      marginBottom: 14,
     },
-    themeOptions: {
-      flexDirection: "row",
-      gap: 10,
-    },
-    quickToggleRow: {
+    themeOptions: { flexDirection: "row", gap: 10 },
+    toggleRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      backgroundColor: colors.card,
+    },
+    toggleLeft: { flexDirection: "row", alignItems: "center", gap: 14 },
+    iconCircle: {
+      width: 44,
+      height: 44,
       borderRadius: 14,
-      paddingHorizontal: 18,
-      paddingVertical: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
+      overflow: "hidden",
     },
-    quickToggleLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    toggleIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
-      backgroundColor: isDark ? "#252548" : "#ede9fe",
+    iconGradient: {
+      flex: 1,
       alignItems: "center",
       justifyContent: "center",
     },
     toggleLabel: {
-      fontSize: 15,
-      fontFamily: "Inter_500Medium",
+      fontSize: 16,
+      fontFamily: "Inter_600SemiBold",
       color: colors.foreground,
     },
     toggleSub: {
@@ -161,82 +176,85 @@ export default function SettingsScreen() {
       color: colors.mutedForeground,
       marginTop: 2,
     },
-    infoCard: {
-      backgroundColor: colors.muted,
-      borderRadius: 14,
-      padding: 16,
-      gap: 6,
+    infoRow: {
+      flexDirection: "row",
+      gap: 14,
+      alignItems: "flex-start",
+    },
+    infoBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
     },
     infoText: {
-      fontSize: 14,
+      flex: 1,
+      fontSize: 13,
       fontFamily: "Inter_400Regular",
       color: colors.mutedForeground,
       lineHeight: 20,
+    },
+    version: {
+      textAlign: "center",
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: colors.mutedForeground,
+      marginTop: 8,
+      marginBottom: 16,
     },
   });
 
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <Pressable style={s.closeBtn} onPress={() => router.back()}>
-          <Feather name="x" size={18} color={colors.foreground} />
-        </Pressable>
-        <Text style={s.headerTitle}>Ayarlar</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <LinearGradient
+        colors={isDark ? ["#1a1040", "#0e0e1a"] : ["#4f46e5", "#7c3aed"]}
+        style={s.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={s.headerTop}>
+          <Pressable style={s.closeBtn} onPress={() => router.back()}>
+            <Feather name="x" size={18} color="#ffffff" />
+          </Pressable>
+          <Text style={s.headerTitle}>⚙️ Ayarlar</Text>
+          <View style={{ width: 38 }} />
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Theme mode picker */}
-        <View>
-          <Text style={s.sectionLabel}>Tema</Text>
+        {/* Theme Picker */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>Tema Seçimi</Text>
           <View style={s.themeOptions}>
-            <ThemeOptionButton
-              label="Açık"
-              icon="sun"
-              value="light"
-              current={mode}
-              onPress={() => setMode("light")}
-            />
-            <ThemeOptionButton
-              label="Koyu"
-              icon="moon"
-              value="dark"
-              current={mode}
-              onPress={() => setMode("dark")}
-            />
-            <ThemeOptionButton
-              label="Sistem"
-              icon="smartphone"
-              value="system"
-              current={mode}
-              onPress={() => setMode("system")}
-            />
+            <ThemeOption label="Açık" emoji="☀️" value="light" current={mode} onPress={() => setMode("light")} colors={colors} />
+            <ThemeOption label="Koyu" emoji="🌙" value="dark" current={mode} onPress={() => setMode("dark")} colors={colors} />
+            <ThemeOption label="Sistem" emoji="📱" value="system" current={mode} onPress={() => setMode("system")} colors={colors} />
           </View>
         </View>
 
-        {/* Quick dark mode toggle */}
-        <View>
-          <Text style={s.sectionLabel}>Hızlı Geçiş</Text>
-          <View style={s.quickToggleRow}>
-            <View style={s.quickToggleLeft}>
-              <View style={s.toggleIcon}>
-                <Feather
-                  name={isDark ? "moon" : "sun"}
-                  size={20}
-                  color={colors.primary}
-                />
+        {/* Quick Toggle */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>Hızlı Geçiş</Text>
+          <View style={s.toggleRow}>
+            <View style={s.toggleLeft}>
+              <View style={s.iconCircle}>
+                <LinearGradient
+                  colors={isDark ? ["#3730a3", "#6366f1"] : ["#fbbf24", "#f59e0b"]}
+                  style={s.iconGradient}
+                >
+                  <Feather name={isDark ? "moon" : "sun"} size={20} color="#ffffff" />
+                </LinearGradient>
               </View>
               <View>
-                <Text style={s.toggleLabel}>
-                  {isDark ? "Koyu Mod Açık" : "Koyu Mod Kapalı"}
-                </Text>
-                <Text style={s.toggleSub}>
-                  {isDark ? "Karanlık tema aktif" : "Aydınlık tema aktif"}
-                </Text>
+                <Text style={s.toggleLabel}>{isDark ? "Koyu Mod" : "Açık Mod"}</Text>
+                <Text style={s.toggleSub}>{isDark ? "Karanlık tema aktif" : "Aydınlık tema aktif"}</Text>
               </View>
             </View>
             <Switch
@@ -248,15 +266,20 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Info */}
-        <View style={s.infoCard}>
-          <Text style={[s.infoText, { fontFamily: "Inter_600SemiBold", color: colors.foreground }]}>
-            💡 Bildirimler hakkında
-          </Text>
-          <Text style={s.infoText}>
-            Bildirimler yalnızca telefon veya tablette çalışır. Web önizlemesinde bildirim gönderilmez.
-          </Text>
+        {/* Notification info */}
+        <View style={s.card}>
+          <Text style={s.cardLabel}>Bildirimler</Text>
+          <View style={s.infoRow}>
+            <View style={s.infoBadge}>
+              <Text style={{ fontSize: 20 }}>🔔</Text>
+            </View>
+            <Text style={s.infoText}>
+              Bildirimler yalnızca telefon veya tablette çalışır. Her alışkanlık için birden fazla hatırlatma saati seçebilirsin.
+            </Text>
+          </View>
         </View>
+
+        <Text style={s.version}>Alışkanlık Takip v1.0 ✨</Text>
       </ScrollView>
     </View>
   );

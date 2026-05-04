@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef } from "react";
 import {
@@ -17,32 +18,53 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useToast } from "@/components/Toast";
 import { useHabits, type Habit } from "@/context/HabitsContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+
+const CARD_ACCENT_COLORS = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",
+  "#10b981", "#3b82f6", "#ef4444", "#14b8a6",
+];
+
+function getAccentColor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return CARD_ACCENT_COLORS[Math.abs(hash) % CARD_ACCENT_COLORS.length];
+}
 
 function HabitRow({
   habit,
+  accentColor,
   onToggle,
   onDelete,
 }: {
   habit: Habit;
+  accentColor: string;
   onToggle: () => void;
   onDelete: () => void;
 }) {
   const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const checkScale = useRef(new Animated.Value(habit.isDone ? 1 : 0)).current;
+  const checkRotate = useRef(new Animated.Value(0)).current;
 
   function handleToggle() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const goingDone = !habit.isDone;
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.97, duration: 70, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, damping: 12, stiffness: 200, useNativeDriver: true }),
     ]).start();
     if (goingDone) {
-      Animated.spring(checkScale, { toValue: 1, damping: 10, stiffness: 220, useNativeDriver: true }).start();
+      Animated.parallel([
+        Animated.spring(checkScale, { toValue: 1, damping: 8, stiffness: 260, useNativeDriver: true }),
+        Animated.timing(checkRotate, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
     } else {
-      Animated.timing(checkScale, { toValue: 0, duration: 120, useNativeDriver: true }).start();
+      Animated.parallel([
+        Animated.timing(checkScale, { toValue: 0, duration: 120, useNativeDriver: true }),
+        Animated.timing(checkRotate, { toValue: 0, duration: 120, useNativeDriver: true }),
+      ]).start();
     }
     onToggle();
   }
@@ -51,25 +73,35 @@ function HabitRow({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert("Alışkanlığı Sil", `"${habit.emoji} ${habit.name}" silinsin mi?`, [
       { text: "İptal", style: "cancel" },
-      { text: "Sil", style: "destructive", onPress: onDelete },
+      { text: "Sil 🗑️", style: "destructive", onPress: onDelete },
     ]);
   }
+
+  const spin = checkRotate.interpolate({ inputRange: [0, 1], outputRange: ["-30deg", "0deg"] });
 
   return (
     <Pressable onPress={handleToggle} onLongPress={handleLongPress} delayLongPress={400}>
       <Animated.View
         style={[
-          rowStyles.row,
+          rowStyles.card,
           {
-            backgroundColor: habit.isDone
-              ? colors.accent
-              : colors.card,
-            borderColor: habit.isDone ? colors.primary + "55" : colors.border,
+            backgroundColor: colors.card,
+            borderColor: colors.border,
             transform: [{ scale: scaleAnim }],
           },
         ]}
       >
-        <Text style={rowStyles.emoji}>{habit.emoji}</Text>
+        {/* Left accent bar */}
+        <View style={[rowStyles.accentBar, { backgroundColor: habit.isDone ? colors.border : accentColor }]} />
+
+        {/* Emoji badge */}
+        <View style={[rowStyles.emojiBadge, {
+          backgroundColor: habit.isDone ? colors.muted : accentColor + "18",
+        }]}>
+          <Text style={rowStyles.emojiText}>{habit.emoji}</Text>
+        </View>
+
+        {/* Content */}
         <View style={{ flex: 1 }}>
           <Text
             style={[
@@ -90,49 +122,66 @@ function HabitRow({
             </Text>
           )}
         </View>
-        <View
-          style={[
-            rowStyles.checkbox,
-            {
-              borderColor: habit.isDone ? colors.primary : colors.border,
-              backgroundColor: habit.isDone ? colors.primary : "transparent",
-            },
-          ]}
-        >
-          <Animated.View style={{ transform: [{ scale: checkScale }] }}>
-            <Feather name="check" size={15} color="#ffffff" />
+
+        {/* Checkbox */}
+        <Pressable onPress={handleToggle} hitSlop={12} style={[
+          rowStyles.checkbox,
+          {
+            borderColor: habit.isDone ? accentColor : colors.border,
+            backgroundColor: habit.isDone ? accentColor : "transparent",
+          },
+        ]}>
+          <Animated.View style={{ transform: [{ scale: checkScale }, { rotate: spin }] }}>
+            <Feather name="check" size={14} color="#ffffff" strokeWidth={3} />
           </Animated.View>
-        </View>
+        </Pressable>
       </Animated.View>
     </Pressable>
   );
 }
 
 const rowStyles = StyleSheet.create({
-  row: {
+  card: {
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 16,
     marginVertical: 5,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden",
     shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
+    paddingRight: 16,
+    paddingVertical: 14,
   },
-  emoji: { fontSize: 24, marginRight: 12 },
+  accentBar: {
+    width: 4,
+    alignSelf: "stretch",
+    marginRight: 12,
+    borderRadius: 2,
+  },
+  emojiBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  emojiText: { fontSize: 22 },
   name: {
     fontSize: 16,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: -0.2,
   },
   times: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-    marginTop: 2,
+    marginTop: 3,
+    letterSpacing: 0.1,
   },
   checkbox: {
     width: 28,
@@ -147,6 +196,7 @@ const rowStyles = StyleSheet.create({
 
 export default function HomeScreen() {
   const colors = useColors();
+  const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { habits, toggleHabit, deleteHabit, isLoading } = useHabits();
   const { show: showToast } = useToast();
@@ -154,6 +204,7 @@ export default function HomeScreen() {
   const doneCount = habits.filter((h) => h.isDone).length;
   const total = habits.length;
   const allDone = total > 0 && doneCount === total;
+  const progress = total > 0 ? doneCount / total : 0;
 
   async function handleToggle(habit: Habit) {
     const goingDone = !habit.isDone;
@@ -164,86 +215,113 @@ export default function HomeScreen() {
     }
   }
 
+  const gradientColors: [string, string] = isDark
+    ? ["#1a1040", "#0e0e1a"]
+    : ["#4f46e5", "#7c3aed"];
+
   const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
-      paddingTop: Platform.OS === "web" ? 56 : insets.top + 16,
+      paddingTop: Platform.OS === "web" ? 50 : insets.top + 10,
       paddingHorizontal: 20,
-      paddingBottom: 10,
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
+      paddingBottom: 28,
     },
-    headerLeft: { flex: 1 },
-    title: {
-      fontSize: 24,
-      fontFamily: "Inter_700Bold",
-      color: colors.foreground,
-    },
-    subtitleRow: {
+    headerTop: {
       flexDirection: "row",
       alignItems: "center",
-      marginTop: 4,
-      gap: 8,
-      flexWrap: "wrap",
+      justifyContent: "space-between",
+      marginBottom: 4,
     },
-    subtitle: {
+    greeting: {
       fontSize: 13,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
+      fontFamily: "Inter_500Medium",
+      color: "rgba(255,255,255,0.7)",
+      letterSpacing: 0.5,
+      marginBottom: 2,
     },
-    allDoneBadge: {
-      backgroundColor: colors.successLight,
-      borderRadius: 20,
-      paddingHorizontal: 10,
-      paddingVertical: 2,
-    },
-    allDoneText: {
-      fontSize: 11,
-      fontFamily: "Inter_600SemiBold",
-      color: colors.success,
+    title: {
+      fontSize: 26,
+      fontFamily: "Inter_700Bold",
+      color: "#ffffff",
+      letterSpacing: -0.5,
     },
     settingsBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      backgroundColor: colors.muted,
+      width: 40,
+      height: 40,
+      borderRadius: 13,
+      backgroundColor: "rgba(255,255,255,0.15)",
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 2,
+    },
+    statsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 16,
+    },
+    statChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+    },
+    statText: {
+      fontSize: 13,
+      fontFamily: "Inter_600SemiBold",
+      color: "#ffffff",
+    },
+    allDoneChip: {
+      backgroundColor: "rgba(255,255,255,0.25)",
     },
     progressTrack: {
-      marginHorizontal: 20,
-      marginBottom: 12,
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: colors.muted,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: "rgba(255,255,255,0.25)",
+      marginTop: 12,
+      overflow: "hidden",
     },
     progressFill: {
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: colors.primary,
-      width: total > 0 ? `${(doneCount / total) * 100}%` : "0%",
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: "#ffffff",
+      width: `${progress * 100}%`,
     },
-    list: { flex: 1 },
+    body: { flex: 1, marginTop: -12 },
     listContent: {
-      paddingTop: 4,
+      paddingTop: 16,
       paddingBottom: Platform.OS === "web" ? 120 : insets.bottom + 100,
     },
     emptyContainer: {
-      flex: 1,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: 40,
-      paddingBottom: 100,
+      paddingTop: 60,
     },
-    emptyEmoji: { fontSize: 56, marginBottom: 16 },
+    emptyBadge: {
+      width: 100,
+      height: 100,
+      borderRadius: 30,
+      backgroundColor: colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 24,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+    emptyEmoji: { fontSize: 48 },
     emptyTitle: {
-      fontSize: 20,
-      fontFamily: "Inter_600SemiBold",
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
       color: colors.foreground,
       textAlign: "center",
-      marginBottom: 8,
+      marginBottom: 10,
+      letterSpacing: -0.3,
     },
     emptyText: {
       fontSize: 14,
@@ -252,21 +330,34 @@ export default function HomeScreen() {
       textAlign: "center",
       lineHeight: 22,
     },
+    emptyArrow: {
+      marginTop: 40,
+      alignItems: "center",
+      gap: 6,
+    },
+    emptyArrowText: {
+      fontSize: 13,
+      fontFamily: "Inter_500Medium",
+      color: colors.mutedForeground,
+    },
     fab: {
       position: "absolute",
       right: 20,
       bottom: Platform.OS === "web" ? 50 : insets.bottom + 20,
-      width: 58,
-      height: 58,
-      borderRadius: 29,
-      backgroundColor: colors.primary,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      overflow: "hidden",
+      shadowColor: "#4f46e5",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.45,
+      shadowRadius: 18,
+      elevation: 10,
+    },
+    fabGradient: {
+      flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.4,
-      shadowRadius: 14,
-      elevation: 8,
     },
   });
 
@@ -278,75 +369,98 @@ export default function HomeScreen() {
     );
   }
 
+  const today = new Date();
+  const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+  const monthNames = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+  const dateStr = `${dayNames[today.getDay()]}, ${today.getDate()} ${monthNames[today.getMonth()]}`;
+
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <View style={s.headerLeft}>
-          <Text style={s.title}>Bugünkü Görevlerin 💪</Text>
-          <View style={s.subtitleRow}>
-            {total > 0 && (
-              <Text style={s.subtitle}>{doneCount}/{total} tamamlandı</Text>
-            )}
-            {allDone && (
-              <View style={s.allDoneBadge}>
-                <Text style={s.allDoneText}>Bugünü fulledin! 🔥</Text>
-              </View>
-            )}
+      <LinearGradient colors={gradientColors} style={s.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <View style={s.headerTop}>
+          <View>
+            <Text style={s.greeting}>{dateStr}</Text>
+            <Text style={s.title}>Bugünkü Görevlerin 💪</Text>
           </View>
+          <Pressable
+            style={({ pressed }) => [s.settingsBtn, { opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => router.push("/settings")}
+          >
+            <Feather name="settings" size={20} color="#ffffff" />
+          </Pressable>
         </View>
-        <Pressable
-          style={({ pressed }) => [s.settingsBtn, { opacity: pressed ? 0.7 : 1 }]}
-          onPress={() => router.push("/settings")}
-        >
-          <Feather name="settings" size={20} color={colors.mutedForeground} />
-        </Pressable>
+
+        {total > 0 && (
+          <>
+            <View style={s.statsRow}>
+              <View style={s.statChip}>
+                <Feather name="check-circle" size={13} color="#ffffff" />
+                <Text style={s.statText}>{doneCount}/{total} tamamlandı</Text>
+              </View>
+              {allDone && (
+                <View style={[s.statChip, s.allDoneChip]}>
+                  <Text style={s.statText}>Bugünü fulledin! 🔥</Text>
+                </View>
+              )}
+            </View>
+            <View style={s.progressTrack}>
+              <View style={s.progressFill} />
+            </View>
+          </>
+        )}
+      </LinearGradient>
+
+      <View style={s.body}>
+        <FlatList
+          contentContainerStyle={
+            habits.length === 0
+              ? [s.listContent, { flex: 1 }]
+              : s.listContent
+          }
+          data={habits}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <HabitRow
+              habit={item}
+              accentColor={getAccentColor(item.id)}
+              onToggle={() => handleToggle(item)}
+              onDelete={() => deleteHabit(item.id)}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={s.emptyContainer}>
+              <View style={s.emptyBadge}>
+                <Text style={s.emptyEmoji}>📋</Text>
+              </View>
+              <Text style={s.emptyTitle}>Henüz alışkanlık yok</Text>
+              <Text style={s.emptyText}>
+                Küçük adımlar büyük değişimler yaratır.{"\n"}İlk alışkanlığını ekleyerek başla!
+              </Text>
+              <View style={s.emptyArrow}>
+                <Text style={s.emptyArrowText}>aşağıdaki + butonuna bas</Text>
+                <Feather name="arrow-down" size={18} color={colors.mutedForeground} />
+              </View>
+            </View>
+          }
+        />
       </View>
 
-      {total > 0 && (
-        <View style={s.progressTrack}>
-          <View style={s.progressFill} />
-        </View>
-      )}
-
-      <FlatList
-        style={s.list}
-        contentContainerStyle={
-          habits.length === 0
-            ? [s.listContent, { flex: 1 }]
-            : s.listContent
-        }
-        data={habits}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <HabitRow
-            habit={item}
-            onToggle={() => handleToggle(item)}
-            onDelete={() => deleteHabit(item.id)}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={s.emptyContainer}>
-            <Text style={s.emptyEmoji}>📋</Text>
-            <Text style={s.emptyTitle}>Henüz alışkanlık yok</Text>
-            <Text style={s.emptyText}>
-              Sağ alttaki + butonuna basarak{"\n"}ilk alışkanlığını ekle.
-            </Text>
-          </View>
-        }
-      />
-
       <Pressable
-        style={({ pressed }) => [
-          s.fab,
-          { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] },
-        ]}
+        style={({ pressed }) => [s.fab, { transform: [{ scale: pressed ? 0.92 : 1 }] }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           router.push("/add-habit");
         }}
       >
-        <Feather name="plus" size={28} color="#ffffff" />
+        <LinearGradient
+          colors={["#6366f1", "#4f46e5"]}
+          style={s.fabGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Feather name="plus" size={28} color="#ffffff" />
+        </LinearGradient>
       </Pressable>
     </View>
   );
