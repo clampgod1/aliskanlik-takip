@@ -4,6 +4,7 @@ title = "Alışkanlık Takip"
 version = "1.0.0"
 id = "artifacts/mobile"
 router = "expo-domain"
+hideAttribution = true
 
 [[integratedSkills]]
 name = "expo"
