@@ -1,24 +1,38 @@
 {
   "expo": {
     "name": "Alışkanlık Takip",
-    "slug": "mobile",
+    "slug": "aliskanlik-takip",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "aliskanlik-takip",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#4f46e5"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.workspace.mobile"
+      "bundleIdentifier": "com.aliskanlik.takip",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Alışkanlıklarını hatırlatmak için bildirim göndereceğiz."
+      }
     },
     "android": {
-      "package": "com.workspace.mobile"
+      "package": "com.aliskanlik.takip",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#4f46e5"
+      },
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -44,6 +58,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
     }
   }
 }
