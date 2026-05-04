@@ -20,7 +20,6 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function scheduleHabitNotification(
-  habitId: string,
   habitName: string,
   emoji: string,
   reminderTime: string
@@ -35,7 +34,6 @@ export async function scheduleHabitNotification(
       content: {
         title: "👉 Alışkanlığını unutma!",
         body: `${emoji} ${habitName} zamanı 💪`,
-        data: { habitId },
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -49,6 +47,19 @@ export async function scheduleHabitNotification(
   }
 }
 
+export async function scheduleMultipleNotifications(
+  habitName: string,
+  emoji: string,
+  reminderTimes: string[]
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const t of reminderTimes) {
+    const id = await scheduleHabitNotification(habitName, emoji, t);
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
 export async function cancelHabitNotification(
   notificationId: string
 ): Promise<void> {
@@ -56,4 +67,10 @@ export async function cancelHabitNotification(
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch {}
+}
+
+export async function cancelMultipleNotifications(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    await cancelHabitNotification(id);
+  }
 }

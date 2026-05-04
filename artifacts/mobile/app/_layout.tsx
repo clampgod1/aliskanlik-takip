@@ -15,19 +15,33 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/Toast";
 import { HabitsProvider } from "@/context/HabitsContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { requestNotificationPermission } from "@/hooks/useNotifications";
 
 SplashScreen.preventAutoHideAsync();
 
-function RootLayoutNav() {
+function ThemedStack() {
+  const { isDark } = useTheme();
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: isDark ? "#0e0e1a" : "#f8f8fc" } }}>
       <Stack.Screen name="index" />
-      <Stack.Screen
-        name="add-habit"
-        options={{ presentation: "modal", headerShown: false }}
-      />
+      <Stack.Screen name="add-habit" options={{ presentation: "modal", headerShown: false }} />
+      <Stack.Screen name="settings" options={{ presentation: "modal", headerShown: false }} />
     </Stack>
+  );
+}
+
+function AppProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <HabitsProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </HabitsProvider>
   );
 }
 
@@ -51,15 +65,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <HabitsProvider>
-          <GestureHandlerRootView>
-            <KeyboardProvider>
-              <ToastProvider>
-                <RootLayoutNav />
-              </ToastProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </HabitsProvider>
+        <ThemeProvider>
+          <AppProviders>
+            <ThemedStack />
+          </AppProviders>
+        </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

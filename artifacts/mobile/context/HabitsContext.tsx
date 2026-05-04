@@ -7,7 +7,10 @@ import React, {
   useState,
 } from "react";
 
-import { cancelHabitNotification, scheduleHabitNotification } from "@/hooks/useNotifications";
+import {
+  cancelMultipleNotifications,
+  scheduleMultipleNotifications,
+} from "@/hooks/useNotifications";
 
 export interface Habit {
   id: string;
@@ -15,19 +18,19 @@ export interface Habit {
   emoji: string;
   isDone: boolean;
   doneDate: string | null;
-  reminderTime: string | null;
-  notificationId: string | null;
+  reminderTimes: string[];
+  notificationIds: string[];
 }
 
 interface HabitsContextType {
   habits: Habit[];
-  addHabit: (name: string, emoji: string, reminderTime: string | null) => Promise<void>;
+  addHabit: (name: string, emoji: string, reminderTimes: string[]) => Promise<void>;
   toggleHabit: (id: string) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   isLoading: boolean;
 }
 
-const STORAGE_KEY = "@habits_v2";
+const STORAGE_KEY = "@habits_v3";
 
 function getTodayString(): string {
   const d = new Date();
@@ -56,6 +59,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         const today = getTodayString();
         const reset = parsed.map((h) => ({
           ...h,
+          reminderTimes: h.reminderTimes ?? [],
+          notificationIds: h.notificationIds ?? [],
           isDone: h.doneDate === today ? h.isDone : false,
           doneDate: h.doneDate === today ? h.doneDate : null,
         }));
@@ -74,19 +79,15 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   }
 
   const addHabit = useCallback(
-    async (name: string, emoji: string, reminderTime: string | null) => {
+    async (name: string, emoji: string, reminderTimes: string[]) => {
       const trimmed = name.trim();
       if (!trimmed) return;
 
-      let notificationId: string | null = null;
-      if (reminderTime) {
-        notificationId = await scheduleHabitNotification(
-          generateId(),
-          trimmed,
-          emoji,
-          reminderTime
-        );
-      }
+      const notificationIds = await scheduleMultipleNotifications(
+        trimmed,
+        emoji,
+        reminderTimes
+      );
 
       const newHabit: Habit = {
         id: generateId(),
@@ -94,8 +95,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         emoji,
         isDone: false,
         doneDate: null,
-        reminderTime,
-        notificationId,
+        reminderTimes,
+        notificationIds,
       };
       await saveHabits([...habits, newHabit]);
     },
@@ -108,11 +109,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       const updated = habits.map((h) => {
         if (h.id !== id) return h;
         const newDone = !h.isDone;
-        return {
-          ...h,
-          isDone: newDone,
-          doneDate: newDone ? today : null,
-        };
+        return { ...h, isDone: newDone, doneDate: newDone ? today : null };
       });
       await saveHabits(updated);
     },
@@ -122,8 +119,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const deleteHabit = useCallback(
     async (id: string) => {
       const habit = habits.find((h) => h.id === id);
-      if (habit?.notificationId) {
-        await cancelHabitNotification(habit.notificationId);
+      if (habit?.notificationIds?.length) {
+        await cancelMultipleNotifications(habit.notificationIds);
       }
       await saveHabits(habits.filter((h) => h.id !== id));
     },

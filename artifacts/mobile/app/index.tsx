@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useRef } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   FlatList,
@@ -11,7 +12,6 @@ import {
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -30,37 +30,21 @@ function HabitRow({
 }) {
   const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const checkScaleAnim = useRef(new Animated.Value(habit.isDone ? 1 : 0)).current;
+  const checkScale = useRef(new Animated.Value(habit.isDone ? 1 : 0)).current;
 
-  function animateTap(cb: () => void) {
+  function handleToggle() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const goingDone = !habit.isDone;
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
     ]).start();
-    cb();
-  }
-
-  function animateCheck(isDone: boolean) {
-    if (isDone) {
-      Animated.spring(checkScaleAnim, {
-        toValue: 1,
-        damping: 10,
-        stiffness: 220,
-        useNativeDriver: true,
-      }).start();
+    if (goingDone) {
+      Animated.spring(checkScale, { toValue: 1, damping: 10, stiffness: 220, useNativeDriver: true }).start();
     } else {
-      Animated.timing(checkScaleAnim, {
-        toValue: 0,
-        duration: 120,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(checkScale, { toValue: 0, duration: 120, useNativeDriver: true }).start();
     }
-  }
-
-  function handleToggle() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    animateCheck(!habit.isDone);
-    animateTap(onToggle);
+    onToggle();
   }
 
   function handleLongPress() {
@@ -77,41 +61,48 @@ function HabitRow({
         style={[
           rowStyles.row,
           {
-            backgroundColor: habit.isDone ? "#f0f0ff" : "#ffffff",
-            borderColor: habit.isDone ? "#c7d2fe" : "#e8e8f0",
+            backgroundColor: habit.isDone
+              ? colors.accent
+              : colors.card,
+            borderColor: habit.isDone ? colors.primary + "55" : colors.border,
             transform: [{ scale: scaleAnim }],
           },
         ]}
       >
         <Text style={rowStyles.emoji}>{habit.emoji}</Text>
-        <Text
-          style={[
-            rowStyles.name,
-            {
-              color: habit.isDone ? "#9094a0" : "#1a1a2e",
-              textDecorationLine: habit.isDone ? "line-through" : "none",
-            },
-          ]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {habit.name}
-        </Text>
-        <Pressable
-          onPress={handleToggle}
-          hitSlop={10}
+        <View style={{ flex: 1 }}>
+          <Text
+            style={[
+              rowStyles.name,
+              {
+                color: habit.isDone ? colors.mutedForeground : colors.foreground,
+                textDecorationLine: habit.isDone ? "line-through" : "none",
+              },
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {habit.name}
+          </Text>
+          {habit.reminderTimes.length > 0 && (
+            <Text style={[rowStyles.times, { color: colors.mutedForeground }]}>
+              🔔 {habit.reminderTimes.join(" · ")}
+            </Text>
+          )}
+        </View>
+        <View
           style={[
             rowStyles.checkbox,
             {
-              borderColor: habit.isDone ? "#4f46e5" : "#d1d5db",
-              backgroundColor: habit.isDone ? "#4f46e5" : "transparent",
+              borderColor: habit.isDone ? colors.primary : colors.border,
+              backgroundColor: habit.isDone ? colors.primary : "transparent",
             },
           ]}
         >
-          <Animated.View style={{ transform: [{ scale: checkScaleAnim }] }}>
+          <Animated.View style={{ transform: [{ scale: checkScale }] }}>
             <Feather name="check" size={15} color="#ffffff" />
           </Animated.View>
-        </Pressable>
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -124,8 +115,8 @@ const rowStyles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 5,
     borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     shadowColor: "#4f46e5",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -133,15 +124,15 @@ const rowStyles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1.5,
   },
-  emoji: {
-    fontSize: 22,
-    marginRight: 12,
-  },
+  emoji: { fontSize: 24, marginRight: 12 },
   name: {
-    flex: 1,
     fontSize: 16,
     fontFamily: "Inter_500Medium",
-    marginRight: 12,
+  },
+  times: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
   },
   checkbox: {
     width: 28,
@@ -150,6 +141,7 @@ const rowStyles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 10,
   },
 });
 
@@ -164,26 +156,27 @@ export default function HomeScreen() {
   const allDone = total > 0 && doneCount === total;
 
   async function handleToggle(habit: Habit) {
+    const goingDone = !habit.isDone;
     await toggleHabit(habit.id);
-    if (!habit.isDone) {
-      showToast("Helal! Devam et 🔥");
-    } else {
-      showToast("Hadi tekrar dene 😅");
-    }
-    if (!habit.isDone && doneCount + 1 === total) {
-      setTimeout(() => showToast("Bugünü fulledin! 🎉🔥"), 600);
+    showToast(goingDone ? "Helal! Devam et 🔥" : "Hadi tekrar dene 😅");
+    if (goingDone && doneCount + 1 === total) {
+      setTimeout(() => showToast("Bugünü fulledin! 🎉🔥"), 700);
     }
   }
 
-  const styles = StyleSheet.create({
+  const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
-      paddingTop: Platform.OS === "web" ? 60 : insets.top + 20,
+      paddingTop: Platform.OS === "web" ? 56 : insets.top + 16,
       paddingHorizontal: 20,
-      paddingBottom: 12,
+      paddingBottom: 10,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
     },
+    headerLeft: { flex: 1 },
     title: {
-      fontSize: 26,
+      fontSize: 24,
       fontFamily: "Inter_700Bold",
       color: colors.foreground,
     },
@@ -192,39 +185,49 @@ export default function HomeScreen() {
       alignItems: "center",
       marginTop: 4,
       gap: 8,
+      flexWrap: "wrap",
     },
     subtitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: "Inter_400Regular",
       color: colors.mutedForeground,
     },
     allDoneBadge: {
-      backgroundColor: "#dcfce7",
+      backgroundColor: colors.successLight,
       borderRadius: 20,
       paddingHorizontal: 10,
       paddingVertical: 2,
     },
     allDoneText: {
-      fontSize: 12,
+      fontSize: 11,
       fontFamily: "Inter_600SemiBold",
-      color: "#16a34a",
+      color: colors.success,
+    },
+    settingsBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: colors.muted,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 2,
     },
     progressTrack: {
       marginHorizontal: 20,
-      marginBottom: 14,
+      marginBottom: 12,
       height: 5,
       borderRadius: 3,
-      backgroundColor: "#ede9fe",
+      backgroundColor: colors.muted,
     },
     progressFill: {
       height: 5,
       borderRadius: 3,
-      backgroundColor: "#4f46e5",
+      backgroundColor: colors.primary,
       width: total > 0 ? `${(doneCount / total) * 100}%` : "0%",
     },
     list: { flex: 1 },
     listContent: {
-      paddingTop: 6,
+      paddingTop: 4,
       paddingBottom: Platform.OS === "web" ? 120 : insets.bottom + 100,
     },
     emptyContainer: {
@@ -256,10 +259,10 @@ export default function HomeScreen() {
       width: 58,
       height: 58,
       borderRadius: 29,
-      backgroundColor: "#4f46e5",
+      backgroundColor: colors.primary,
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: "#4f46e5",
+      shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4,
       shadowRadius: 14,
@@ -269,40 +272,48 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { alignItems: "center", justifyContent: "center" }]}>
-        <ActivityIndicator size="large" color="#4f46e5" />
+      <View style={[s.container, { alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Bugünkü Görevlerin 💪</Text>
-        <View style={styles.subtitleRow}>
-          {total > 0 && (
-            <Text style={styles.subtitle}>{doneCount}/{total} tamamlandı</Text>
-          )}
-          {allDone && (
-            <View style={styles.allDoneBadge}>
-              <Text style={styles.allDoneText}>Bugünü fulledin! 🔥</Text>
-            </View>
-          )}
+    <View style={s.container}>
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <Text style={s.title}>Bugünkü Görevlerin 💪</Text>
+          <View style={s.subtitleRow}>
+            {total > 0 && (
+              <Text style={s.subtitle}>{doneCount}/{total} tamamlandı</Text>
+            )}
+            {allDone && (
+              <View style={s.allDoneBadge}>
+                <Text style={s.allDoneText}>Bugünü fulledin! 🔥</Text>
+              </View>
+            )}
+          </View>
         </View>
+        <Pressable
+          style={({ pressed }) => [s.settingsBtn, { opacity: pressed ? 0.7 : 1 }]}
+          onPress={() => router.push("/settings")}
+        >
+          <Feather name="settings" size={20} color={colors.mutedForeground} />
+        </Pressable>
       </View>
 
       {total > 0 && (
-        <View style={styles.progressTrack}>
-          <View style={styles.progressFill} />
+        <View style={s.progressTrack}>
+          <View style={s.progressFill} />
         </View>
       )}
 
       <FlatList
-        style={styles.list}
+        style={s.list}
         contentContainerStyle={
           habits.length === 0
-            ? [styles.listContent, { flex: 1 }]
-            : styles.listContent
+            ? [s.listContent, { flex: 1 }]
+            : s.listContent
         }
         data={habits}
         keyExtractor={(item) => item.id}
@@ -315,10 +326,10 @@ export default function HomeScreen() {
         )}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>📋</Text>
-            <Text style={styles.emptyTitle}>Henüz alışkanlık yok</Text>
-            <Text style={styles.emptyText}>
+          <View style={s.emptyContainer}>
+            <Text style={s.emptyEmoji}>📋</Text>
+            <Text style={s.emptyTitle}>Henüz alışkanlık yok</Text>
+            <Text style={s.emptyText}>
               Sağ alttaki + butonuna basarak{"\n"}ilk alışkanlığını ekle.
             </Text>
           </View>
@@ -327,7 +338,7 @@ export default function HomeScreen() {
 
       <Pressable
         style={({ pressed }) => [
-          styles.fab,
+          s.fab,
           { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] },
         ]}
         onPress={() => {
