@@ -89,5 +89,3 @@ eas build --platform ios --profile production
 - [ ] Widget desteği
 
 ---
-
-*Replit Agent ile geliştirildi — Mayıs 2026*
