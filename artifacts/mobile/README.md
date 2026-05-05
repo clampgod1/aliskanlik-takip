@@ -1,6 +1,6 @@
-# 📱 Alışkanlık Takip Uygulaması
+# 📱 Alışkanlık Takip
 
-> Günlük alışkanlıklarını takip etmene, hatırlatıcı kurmanı ve ilerlemenizi görmenizi sağlayan minimalist bir mobil uygulama.
+Günlük alışkanlıklarını takip etmeni sağlayan, Türkçe arayüzlü bir mobil uygulama. Expo / React Native ile geliştirildi.
 
 ---
 
@@ -32,11 +32,24 @@
 | Bildirimler | expo-notifications (günlük tekrarlayan) |
 | Tema | Açık / Koyu / Sistem |
 
+### 🌐 Canlı Web Linki
+
+```
+https://a121493e-3f8d-4412-a21c-56be670506c8-00-377pnlb4rvdlw.pike.replit.dev
+```
+
+### 📦 EAS Update (Expo Go)
+
+```
+exp://u.expo.dev/3b43bb62-6a03-4a2d-b5f8-3a2a32776171?channel-name=main
+```
+
 ---
 
 ## 🛠️ Kullanılan Teknolojiler
 
 ### Ana Framework & Dil
+
 | Araç | Sürüm | Açıklama |
 |---|---|---|
 | **TypeScript** | ~5.9.2 | Tip güvenli JavaScript |
@@ -45,12 +58,14 @@
 | **Expo Router** | ~6.0.17 | Dosya tabanlı navigasyon (Next.js tarzı) |
 
 ### Veri & State Yönetimi
+
 | Araç | Sürüm | Açıklama |
 |---|---|---|
 | **AsyncStorage** | 2.2.0 | Kalıcı yerel depolama |
 | **React Context API** | — | Global state yönetimi (HabitsContext, ThemeContext) |
 
 ### UI & Tasarım
+
 | Araç | Sürüm | Açıklama |
 |---|---|---|
 | **expo-linear-gradient** | ~15.0.8 | Header ve butonlarda gradyan renk geçişleri |
@@ -61,24 +76,31 @@
 | **react-native-reanimated** | ~4.1.7 | Yüksek performanslı animasyonlar |
 
 ### Bildirimler
+
 | Araç | Sürüm | Açıklama |
 |---|---|---|
 | **expo-notifications** | ^0.32.17 | Günlük tekrarlayan push bildirimleri |
 | **@react-native-community/datetimepicker** | ^8.4.4 | Saat seçici (TimePicker) |
 
 ### Diğer
+
 | Araç | Sürüm | Açıklama |
 |---|---|---|
 | **expo-haptics** | ~15.0.8 | Dokunsal geri bildirim (titreşim) |
 | **expo-splash-screen** | ~31.0.12 | Uygulama açılış ekranı |
 | **react-native-keyboard-controller** | 1.18.5 | Klavye açılış/kapanış yönetimi |
+| **babel-preset-expo** | — | Expo için Babel yapılandırması |
+| **expo-updates** | ~29.0.17 | OTA (kablosuz) güncelleme desteği |
 
 ### Build & Deploy
+
 | Araç | Açıklama |
 |---|---|
 | **EAS Build** | Expo Application Services — mağaza için derleme |
+| **EAS Update** | OTA güncelleme yayınlama |
 | **EAS Submit** | Otomatik mağaza gönderimi |
 | **pnpm** | Paket yöneticisi (workspace monorepo) |
+| **Replit** | Geliştirme ve web hosting platformu |
 
 ---
 
@@ -119,16 +141,14 @@
 artifacts/mobile/
 │
 ├── app/                        # Ekranlar (Expo Router)
-│   ├── _layout.tsx             # Root layout, provider'lar buraya
+│   ├── _layout.tsx             # Root layout, provider'lar
 │   ├── index.tsx               # Ana ekran (alışkanlık listesi)
 │   ├── add-habit.tsx           # Yeni alışkanlık ekleme ekranı
 │   ├── settings.tsx            # Ayarlar ekranı (tema seçimi)
 │   └── +not-found.tsx          # 404 sayfası
 │
 ├── components/                 # Yeniden kullanılabilir bileşenler
-│   ├── Toast.tsx               # Özel toast mesaj sistemi
-│   ├── ErrorBoundary.tsx       # Hata sınırı
-│   └── ErrorFallback.tsx       # Hata ekranı
+│   └── Toast.tsx               # Özel toast mesaj sistemi
 │
 ├── context/                    # Global state (React Context)
 │   ├── HabitsContext.tsx       # Alışkanlık CRUD + AsyncStorage
@@ -137,13 +157,6 @@ artifacts/mobile/
 ├── hooks/                      # Özel React hook'ları
 │   ├── useColors.ts            # Tema renklerini döndüren hook
 │   └── useNotifications.ts     # Bildirim planlama/iptal etme
-│
-├── constants/
-│   └── colors.ts               # Renk paleti (light + dark)
-│
-├── assets/
-│   └── images/
-│       └── icon.png            # Uygulama ikonu (AI oluşturuldu)
 │
 ├── app.json                    # Expo konfigürasyonu
 ├── eas.json                    # EAS Build/Submit konfigürasyonu
@@ -182,25 +195,19 @@ artifacts/mobile/
 
 ```typescript
 interface Habit {
-  id: string;           // Benzersiz kimlik (timestamp + random)
-  name: string;         // Alışkanlık adı
-  emoji: string;        // Seçilen emoji
-  isDone: boolean;      // Bugün tamamlandı mı?
+  id: string;                  // Benzersiz kimlik
+  name: string;                // Alışkanlık adı
+  emoji: string;               // Seçilen emoji
+  isDone: boolean;             // Bugün tamamlandı mı?
   doneDate: string | null;     // Tamamlanma tarihi "YYYY-MM-DD"
   reminderTimes: string[];     // Hatırlatma saatleri ["08:00", "20:00"]
   notificationIds: string[];   // Expo bildirim ID'leri
 }
 ```
 
-**Depolama:**
-- AsyncStorage key: `@habits_v3`
-- Tema tercihi key: `@theme_mode_v1`
-
-**Günlük sıfırlama mantığı:**
-```
-Uygulama açılınca:
-  her alışkanlık için → doneDate !== bugün ise → isDone = false
-```
+**Depolama anahtarları:**
+- Alışkanlıklar: `@habits_v3`
+- Tema tercihi: `@theme_mode_v1`
 
 ---
 
@@ -215,54 +222,44 @@ Uygulama açılınca:
 
 ```bash
 # 1. Repoyu klonla
-git clone https://github.com/KULLANICI_ADIN/aliskanlik-takip.git
+git clone https://github.com/clampgod1/aliskanlik-takip.git
 cd aliskanlik-takip
 
 # 2. Bağımlılıkları yükle
 pnpm install
 
 # 3. Uygulamayı başlat
-cd artifacts/mobile
-pnpm dev
-```
-
-QR kodu Expo Go ile tara → uygulama telefonunda açılır.
-
-### Web Önizleme
-```bash
-# Tarayıcıda açmak için
-pnpm exec expo start --web
+pnpm --filter @workspace/mobile run dev
 ```
 
 ---
 
 ## 🏪 Mağazaya Gönderme
 
-### Ön Gereksinimler
+### Gereksinimler
+
 | Platform | Gereksinim | Ücret |
 |---|---|---|
 | Google Play | Google Play Developer hesabı | $25 (tek seferlik) |
 | App Store | Apple Developer Program | $99/yıl |
 | Her ikisi | Expo hesabı (expo.dev) | Ücretsiz |
 
-### Adımlar
+### Build Komutları
 
 ```bash
 # EAS CLI kur
 npm install -g eas-cli
 
-# Expo hesabına giriş yap
+# Giriş yap
 eas login
 
-# Projeyi başlat (projectId alırsın)
-eas init
+# Android APK (test için)
+eas build --platform android --profile preview
 
-# app.json içindeki YOUR_EAS_PROJECT_ID'yi güncelle
-
-# Android için build
+# Android App Bundle (Play Store)
 eas build --platform android --profile production
 
-# iOS için build
+# iOS (App Store / TestFlight)
 eas build --platform ios --profile production
 
 # Mağazalara gönder
@@ -270,11 +267,12 @@ eas submit --platform android
 eas submit --platform ios
 ```
 
-### Mağaza Listesi İçin Gerekenler
-- [ ] Uygulama açıklaması (Türkçe + İngilizce)
-- [ ] En az 3 ekran görüntüsü (her boyut için)
-- [ ] Gizlilik politikası URL'si (zorunlu)
-- [ ] Uygulama kategorisi: "Health & Fitness" / "Productivity"
+### EAS Update (OTA Güncelleme)
+
+```bash
+# Güncellemeyi yayınla (yeniden build gerekmez)
+EAS_NO_VCS=1 EXPO_TOKEN=$EXPO_TOKEN eas update --branch main --message "Güncelleme açıklaması" --non-interactive
+```
 
 ---
 
@@ -282,81 +280,63 @@ eas submit --platform ios
 
 ### Aşama 1 — Temel Altyapı
 - Expo + Expo Router kurulumu
-- Dosya tabanlı navigasyon (Stack: index → add-habit)
 - AsyncStorage ile veri katmanı
-- `HabitsContext` ile global state (addHabit, toggleHabit, deleteHabit)
+- `HabitsContext` ile global state
 - Günlük otomatik sıfırlama mantığı
 
 ### Aşama 2 — Temel Ekranlar
-- **Ana Ekran:** Alışkanlık listesi, checkbox, boş durum mesajı
-- **Ekleme Ekranı:** TextInput + Kaydet butonu
-- Uzun basınca silme (Alert dialog)
-- İlerleme çubuğu
+- Ana Ekran: alışkanlık listesi, checkbox, progress bar
+- Ekleme Ekranı: TextInput + Kaydet
+- Uzun basınca silme
 
 ### Aşama 3 — Emoji + Bildirim Sistemi
-- Emoji seçimi klavyeden (TextInput tabanlı, herhangi emoji destekler)
+- Emoji seçimi klavyeden
 - `expo-notifications` entegrasyonu
 - Günlük tekrarlayan bildirim planlama
-- Birden fazla hatırlatma saati desteği
-- Alışkanlık silinince otomatik bildirim iptali
+- Birden fazla hatırlatma saati
 - `@react-native-community/datetimepicker` ile saat seçici
 
-### Aşama 4 — Motivasyon & UX İyileştirmeleri
+### Aşama 4 — Motivasyon & UX
 - Özel Toast bileşeni (slide-up animasyon)
-- "Helal! Devam et 🔥" / "Hadi tekrar dene 😅" mesajları
-- "Bugünü fulledin! 🎉🔥" kutlama mesajı
-- Haptic feedback (dokunsal geri bildirim)
-- Spring animasyonlu checkbox (scale + rotation)
+- Motivasyon mesajları
+- Haptic feedback
+- Spring animasyonlu checkbox
 
 ### Aşama 5 — Dark Mode & Tema Sistemi
 - `ThemeContext` ile tema state'i
 - AsyncStorage'a tema tercihi kaydetme
-- `constants/colors.ts` içinde `light` ve `dark` palet tanımları
-- `useColors()` hook'u ile tema-aware renk kullanımı
-- Ayarlar ekranı: ☀️ Açık / 🌙 Koyu / 📱 Sistem seçenekleri
+- Açık / Koyu / Sistem seçenekleri
 
-### Aşama 6 — Görsel Tasarım Yenileme
-- `expo-linear-gradient` ile gradyan header (indigo → mor)
-- Her alışkanlık kartına farklı accent rengi (hash ile belirlenir)
-- Sol kenarda renkli dikey çizgi (accent bar)
-- Emoji yuvarlak renkli badge içinde
+### Aşama 6 — Görsel Tasarım
+- `expo-linear-gradient` ile gradyan header
+- Her alışkanlık kartına farklı accent rengi
+- Inter yazı ailesi
 - Gradyan FAB butonu
-- Inter yazı ailesi (4 ağırlık)
-- Tarih göstergesi ("Pazartesi, 4 May")
-- Ayarlar ve Ekleme ekranlarına da gradyan header
 
-### Aşama 7 — Mağaza Hazırlığı
-- `app.json` tam konfigürasyonu (bundleIdentifier, package, permissions)
-- `eas.json` oluşturulması (development / preview / production profilleri)
-- iOS bildirim izni açıklaması (`NSUserNotificationsUsageDescription`)
-- Android izinleri (`POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`)
-- Adaptif ikon (Android)
+### Aşama 7 — Mağaza & Yayın Hazırlığı
+- `app.json` tam konfigürasyonu
+- `eas.json` oluşturulması
+- iOS ve Android izin tanımları
+- EAS Update ile Expo sunucularına yükleme
+- Replit üzerinden web olarak yayınlama
+- GitHub reposuna yükleme (`github.com/clampgod1/aliskanlik-takip`)
 
 ---
 
-## 🤝 GitHub'a Yükleme
+## 🗺 Yol Haritası
 
-```bash
-# 1. GitHub'da yeni repo oluştur (github.com → New repository)
-# Repo adı: aliskanlik-takip
-
-# 2. Lokal klasörde git başlat
-cd /proje/klasörün
-git init
-git add .
-git commit -m "ilk commit: Alışkanlık Takip uygulaması"
-
-# 3. GitHub reposunu bağla
-git remote add origin https://github.com/KULLANICI_ADIN/aliskanlik-takip.git
-git branch -M main
-git push -u origin main
-```
+- [ ] App Store yayını (iOS)
+- [ ] Play Store yayını (Android)
+- [ ] Streak (gün serisi) takibi 🔥
+- [ ] İstatistik ekranı (haftalık/aylık)
+- [ ] Widget desteği
+- [ ] iCloud / Google Drive yedekleme
 
 ---
 
 ## 📄 Lisans
 
-MIT License — istediğin gibi kullanabilirsin.
+MIT License
 
 ---
 
