@@ -31,6 +31,9 @@
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
         "POST_NOTIFICATIONS"
       ]
     },
@@ -61,8 +64,15 @@
     },
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "3b43bb62-6a03-4a2d-b5f8-3a2a32776171"
       }
+    },
+    "owner": "clampgod1",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3b43bb62-6a03-4a2d-b5f8-3a2a32776171"
     }
   }
 }
